@@ -37,8 +37,11 @@
 
 namespace OCA\Files_Trashbin;
 
+use OC\Files\FileInfo;
 use OC\Files\Filesystem;
 use OC\Files\View;
+use OC\HintException;
+use OC\ServerNotAvailableException;
 use OCA\Files_Trashbin\Command\Expire;
 use OCP\Encryption\Keys\IStorage;
 use OCP\Files\ForbiddenException;
@@ -631,7 +634,7 @@ class Trashbin {
 		// Array to store the relative path in (after the file is deleted, the view won't be able to relativise the path anymore)
 		$filePaths = [];
 		foreach ($fileInfos as $fileInfo) {
-			$filePaths[$fileInfo->getId()] = $view->getRelativePath($fileInfo->getPath());
+			$filePaths[$fileInfo] = $view->getRelativePath($fileInfo->getPath());
 		}
 		unset($fileInfos); // save memory
 
@@ -639,8 +642,8 @@ class Trashbin {
 		\OC_Hook::emit('\OCP\Trashbin', 'preDeleteAll', ['paths' => $filePaths]);
 
 		// Single-File Hooks
-		foreach ($filePaths as $fileId => $path) {
-			self::emitTrashbinPreDelete($user, $path, $fileId);
+		foreach ($filePaths as $fileInfo => $path) {
+			self::emitTrashbinPreDelete($user, $path, $fileInfo);
 		}
 
 		// actual file deletion
@@ -667,15 +670,18 @@ class Trashbin {
 	 *
 	 * @param string $uid
 	 * @param string $path
+	 * @param FileInfo $fileInfo
+	 * @throws HintException
+	 * @throws ServerNotAvailableException
 	 */
-	protected static function emitTrashbinPreDelete($uid, $path, $fileId) {
+	protected static function emitTrashbinPreDelete($uid, $path, $fileInfo) {
 		\OC_Hook::emit(
 			'\OCP\Trashbin',
 			'preDelete',
 			[
 				'path' => $path,
 				'user' => $uid,
-				'fileId' => $fileId
+				'fileInfo' => $fileInfo
 			]
 		);
 	}
@@ -685,15 +691,19 @@ class Trashbin {
 	 *
 	 * @param string $uid
 	 * @param string $path
+	 * @param FileInfo $fileInfo
+	 * @throws HintException
+	 * @throws ServerNotAvailableException
 	 */
-	protected static function emitTrashbinPostDelete($uid, $path, $fileId) {
+	protected static function emitTrashbinPostDelete($uid, $path, $fileInfo, $originalLocation) {
 		\OC_Hook::emit(
 			'\OCP\Trashbin',
 			'delete',
 			[
 				'path' => $path,
 				'user' => $uid,
-				'fileId' => $fileId]
+				'fileInfo' => $fileInfo,
+				'originalLocation' => $originalLocation]
 		);
 	}
 
@@ -714,6 +724,8 @@ class Trashbin {
 		$view = new View('/' . $user);
 		$size = 0;
 
+		$location = self::getLocation($user, $filename, $timestamp);
+
 		if ($timestamp) {
 			$query = \OC_DB::prepare('DELETE FROM `*PREFIX*files_trash` WHERE `user`=? AND `id`=? AND `timestamp`=?');
 			$query->execute([$user, $filename, $timestamp]);
@@ -729,10 +741,10 @@ class Trashbin {
 		} else {
 			$size += $view->filesize('/files_trashbin/files/' . $file);
 		}
-		$fileId = $view->getFileInfo('/files_trashbin/files/' . $file);
-		self::emitTrashbinPreDelete($user, "/files_trashbin/files/$file", $fileId);
+		$fileInfo = $view->getFileInfo('/files_trashbin/files/' . $file);
+		self::emitTrashbinPreDelete($user, "/files_trashbin/files/$file", $fileInfo);
 		$view->unlink('/files_trashbin/files/' . $file);
-		self::emitTrashbinPostDelete($user, "/files_trashbin/files/$file", $fileId);
+		self::emitTrashbinPostDelete($user, "/files_trashbin/files/$file", $fileInfo, $location);
 
 		return $size;
 	}
