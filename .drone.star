@@ -155,6 +155,7 @@ config = {
                 "apiWebdavUpload1",
                 "apiWebdavUpload2",
             ],
+            "skip": True,
         },
         "apiNotifications": {
             "suites": [
