@@ -46,6 +46,7 @@ use OCA\Files_Trashbin\Command\Expire;
 use OCP\Encryption\Keys\IStorage;
 use OCP\Files\ForbiddenException;
 use OCP\Files\NotFoundException;
+use OCP\Files\Storage\IVersionedStorage;
 use OCP\Files\StorageNotAvailableException;
 use OCP\Lock\LockedException;
 use OCP\User;
@@ -375,11 +376,13 @@ class Trashbin {
 				'trashPath' => Filesystem::normalizePath($filename . '.d' . $timestamp)
 			]);
 
-			self::retainVersions($filename, $owner, $ownerPath, $timestamp, $sourceStorage);
+			if (!$sourceStorage->instanceOfStorage(IVersionedStorage::class)) {
+				self::retainVersions($filename, $owner, $ownerPath, $timestamp, $sourceStorage);
 
-			// if owner !== user we need to also add a copy to the owners trash
-			if ($user !== $owner) {
-				self::copyFilesToUser($ownerPath, $owner, $file_path, $user, $timestamp);
+				// if owner !== user we need to also add a copy to the owners trash
+				if ($user !== $owner) {
+					self::copyFilesToUser($ownerPath, $owner, $file_path, $user, $timestamp);
+				}
 			}
 		}
 
