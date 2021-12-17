@@ -124,7 +124,7 @@ class ReportTest extends TestCase {
 +------------------+---+
 
 EOS;
-		} else if ($objectStorage && $objectStorageAppEnabled) {
+		} elseif ($objectStorage && $objectStorageAppEnabled) {
 			$expectedOutput = <<<EOS
 +------------------+-------------------------------------------+
 | User Report      |                                           |
@@ -139,7 +139,7 @@ EOS;
 +------------------+-------------------------------------------+
 
 EOS;
-		}else {
+		} else {
 			$expectedOutput = <<<EOS
 +------------------+---+
 | User Report      |   |
