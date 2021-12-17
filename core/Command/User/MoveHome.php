@@ -22,6 +22,9 @@
 namespace OC\Core\Command\User;
 
 use InvalidArgumentException;
+use OC\Files\Filesystem;
+use OC\Files\ObjectStore\ObjectStoreStorage;
+use OC\Files\View;
 use OC\User\AccountMapper;
 use OCP\IUser;
 use OCP\IUserManager;
@@ -57,6 +60,12 @@ class MoveHome extends Command {
 		$user = $this->getUser($input);
 		$userId = $user->getUID();
 		$oldHome = $user->getHome();
+
+		$storage = Filesystem::getStorage($userId);
+		if ($storage->instanceOfStorage(ObjectStoreStorage::class)) {
+			$output->writeln('<error>This command is not supported on an object storage</error>');
+			return 1;
+		}
 
 		$newLocation = $this->getNewLocationForUser($input, $user);
 		$output->writeln("Move $userId from $oldHome to $newLocation");
