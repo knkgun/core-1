@@ -96,8 +96,9 @@ class Report extends Command {
 			$rows[] = ['No backend enabled that supports user counting', ''];
 		}
 
-		$objectStore = $this->config->getSystemValue('objectstore', null);
-		if ($this->appManager->isEnabledForUser('files_primary_s3') && $objectStore !== null) {
+		$objectStorageAppEnabled = $this->appManager->isEnabledForUser('files_primary_s3');
+		$objectStorage = $this->config->getSystemValue('objectstore', null);
+		if ($objectStorageAppEnabled && $objectStorage !== null) {
 			$userDirectoryCount = "<error>not supported with primary object storage</error>";
 		} else {
 			$userDirectoryCount = $this->countUserDirectories();

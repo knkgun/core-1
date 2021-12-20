@@ -24,8 +24,6 @@ namespace OC\Core\Command\User;
 use InvalidArgumentException;
 use OC\Files\Filesystem;
 use OC\Files\ObjectStore\ObjectStoreStorage;
-use OC\Files\View;
-use OC\User\AccountMapper;
 use OCP\IUser;
 use OCP\IUserManager;
 use RuntimeException;

@@ -85,7 +85,7 @@ class ReportTest extends TestCase {
 		$this->loginAsUser('admin');
 	}
 
-	public function objectStorageProvider(): array {
+	public function objectStorageDataProvider(): array {
 		return [
 			[null, false],
 			[null, true],
@@ -95,7 +95,9 @@ class ReportTest extends TestCase {
 	}
 
 	/**
-	 * @dataProvider objectStorageProvider
+	 * @param array|null $objectStorage
+	 * @param bool $objectStorageAppEnabled
+	 * @dataProvider objectStorageDataProvider
 	 * @return void
 	 */
 	public function testCommandInput($objectStorage, $objectStorageAppEnabled) {
