@@ -25,11 +25,10 @@
 
 namespace OC\Core\Command\User;
 
+use OC\Files\Filesystem;
 use OC\Helper\UserTypeHelper;
 use OCP\IUser;
-use OCP\IConfig;
 use OCP\IUserManager;
-use OCP\App\IAppManager;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -42,23 +41,13 @@ class Report extends Command {
 	/** @var UserTypeHelper */
 	protected $userTypeHelper;
 
-	/** @var IConfig */
-	protected $config;
-
-	/** @var IAppManager */
-	protected $appManager;
-
 	/**
 	 * @param IUserManager $userManager
 	 * @param UserTypeHelper $userTypeHelper
-	 * @param IConfig $config
-	 * @param IAppManager $appManager
 	 */
-	public function __construct(IUserManager $userManager, UserTypeHelper $userTypeHelper, IConfig $config, IAppManager $appManager) {
+	public function __construct(IUserManager $userManager, UserTypeHelper $userTypeHelper) {
 		$this->userManager = $userManager;
 		$this->userTypeHelper = $userTypeHelper;
-		$this->config = $config;
-		$this->appManager = $appManager;
 		parent::__construct();
 	}
 
@@ -96,9 +85,7 @@ class Report extends Command {
 			$rows[] = ['No backend enabled that supports user counting', ''];
 		}
 
-		$objectStorageAppEnabled = $this->appManager->isEnabledForUser('files_primary_s3');
-		$objectStorage = $this->config->getSystemValue('objectstore', null);
-		if ($objectStorageAppEnabled && $objectStorage !== null) {
+		if (Filesystem::isPrimaryObjectStorageEnabled() === true) {
 			$userDirectoryCount = "<error>not supported with primary object storage</error>";
 		} else {
 			$userDirectoryCount = $this->countUserDirectories();

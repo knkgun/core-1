@@ -22,8 +22,7 @@
 namespace OC\Core\Command\User;
 
 use OC\Core\Command\Base;
-use OCP\App\IAppManager;
-use OCP\IConfig;
+use OC\Files\Filesystem;
 use OCP\IUserManager;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -32,22 +31,12 @@ class HomeListDirs extends Base {
 	/** @var \OCP\IUserManager */
 	protected $userManager;
 
-	/** @var IConfig */
-	protected $config;
-
-	/** @var IAppManager */
-	protected $appManager;
-
 	/**
 	 * @param IUserManager $userManager
-	 * @param IConfig $config
-	 * @param IAppManager $appManager
 	 */
-	public function __construct(IUserManager $userManager, IConfig $config, IAppManager $appManager) {
+	public function __construct(IUserManager $userManager) {
 		parent::__construct();
 		$this->userManager = $userManager;
-		$this->config = $config;
-		$this->appManager = $appManager;
 	}
 
 	protected function configure() {
@@ -59,9 +48,7 @@ class HomeListDirs extends Base {
 	}
 
 	protected function execute(InputInterface $input, OutputInterface $output) {
-		$objectStorageAppEnabled = $this->appManager->isEnabledForUser('files_primary_s3');
-		$objectStorage = $this->config->getSystemValue('objectstore', null);
-		if ($objectStorageAppEnabled && $objectStorage !== null) {
+		if (Filesystem::isPrimaryObjectStorageEnabled() === true) {
 			$output->writeln('<error>This command is not supported on a primary object storage</error>');
 			return 1;
 		}
