@@ -22,8 +22,6 @@
 namespace Tests\Core\Command\User;
 
 use OC\Core\Command\User\HomeListDirs;
-use OCP\App\IAppManager;
-use OCP\IConfig;
 use OCP\IUser;
 use OCP\IUserManager;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -39,24 +37,33 @@ class HomeListDirsTest extends TestCase {
 	/** @var IUserManager | \PHPUnit\Framework\MockObject\MockObject */
 	private $userManager;
 
-	/** @var IConfig | \PHPUnit\Framework\MockObject\MockObject */
-	protected $config;
-
-	/** @var IAppManager | \PHPUnit\Framework\MockObject\MockObject */
-	protected $appManager;
-
 	protected function setUp(): void {
 		parent::setUp();
 
 		$this->userManager = $this->createMock(IUserManager::class);
-		$this->config = $this->createMock(IConfig::class);
-		$this->appManager = $this->createMock(IAppManager::class);
 
-		$command = new HomeListDirs($this->userManager, $this->config, $this->appManager);
+		$command = new HomeListDirs($this->userManager);
 		$this->commandTester = new CommandTester($command);
 	}
 
-	public function testCommandInput() {
+	public function objectStorageProvider() {
+		return [
+			[true],
+			[false],
+		];
+	}
+
+	/**
+	 * @dataProvider objectStorageProvider
+	 * @param bool $objectStorageUsed
+	 * @return void
+	 */
+	public function testCommandInput($objectStorageUsed) {
+		if ($objectStorageUsed) {
+			$this->overwriteConfigWithObjectStorage();
+			$this->overwriteAppManagerWithObjectStorage();
+		}
+
 		$homePath = '/path/to/homes';
 		$user1Mock = $this->createMock(IUser::class);
 		$user1Mock->method('getHome')->willReturn("$homePath/user1");
@@ -67,13 +74,29 @@ class HomeListDirsTest extends TestCase {
 		$this->commandTester->execute([]);
 		$output = $this->commandTester->getDisplay();
 		$this->assertStringContainsString($homePath, $output);
+
+		if ($objectStorageUsed) {
+			$this->assertStringContainsString('We detected that the instance is running on a primary object storage, home directories might not be accurate', $output);
+			$this->restoreService('AllConfig');
+			$this->restoreService('AppManager');
+		}
 	}
 
-	public function testCommandOnPrimaryObjectStorage() {
-		$this->config->method('getSystemValue')->willReturn(['objectstorage']);
-		$this->appManager->method('isEnabledForUser')->willReturn(true);
-		$this->commandTester->execute([]);
-		$output = $this->commandTester->getDisplay();
-		$this->assertStringContainsString('This command is not supported on a primary object storage', $output);
+	private function overwriteConfigWithObjectStorage() {
+		$config = $this->createMock('\OCP\IConfig');
+		$config->expects($this->any())
+			->method('getSystemValue')
+			->willReturn(['objectstore' => true]);
+
+		$this->overwriteService('AllConfig', $config);
+	}
+
+	private function overwriteAppManagerWithObjectStorage() {
+		$config = $this->createMock('\OCP\App\IAppManager');
+		$config->expects($this->any())
+			->method('isEnabledForUser')
+			->willReturn(true);
+
+		$this->overwriteService('AppManager', $config);
 	}
 }

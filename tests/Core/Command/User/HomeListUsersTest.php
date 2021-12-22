@@ -24,8 +24,6 @@ namespace Tests\Core\Command\User;
 use Doctrine\DBAL\ForwardCompatibility\DriverStatement;
 use OC\Core\Command\User\HomeListUsers;
 use OC\DB\Connection;
-use OCP\App\IAppManager;
-use OCP\IConfig;
 use OCP\IDBConnection;
 use OCP\IUserManager;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -46,12 +44,6 @@ class HomeListUsersTest extends TestCase {
 	/** @var IUserManager | \PHPUnit\Framework\MockObject\MockObject */
 	protected $userManager;
 
-	/** @var IConfig | \PHPUnit\Framework\MockObject\MockObject */
-	protected $config;
-
-	/** @var IAppManager | \PHPUnit\Framework\MockObject\MockObject */
-	protected $appManager;
-
 	protected function setUp(): void {
 		parent::setUp();
 
@@ -61,22 +53,32 @@ class HomeListUsersTest extends TestCase {
 		$this->userManager = $this->getMockBuilder(IUserManager::class)
 			->disableOriginalConstructor()
 			->getMock();
-		$this->config = $this->getMockBuilder(IConfig::class)
-			->disableOriginalConstructor()
-			->getMock();
-		$this->appManager = $this->getMockBuilder(IAppManager::class)
-			->disableOriginalConstructor()
-			->getMock();
+
 		$command = new HomeListUsers(
 			$this->connection,
 			$this->userManager,
-			$this->config,
-			$this->appManager
 		);
 		$this->commandTester = new CommandTester($command);
 	}
 
-	public function testCommandInputForHomePath() {
+	public function objectStorageProvider() {
+		return [
+			[true],
+			[false],
+		];
+	}
+
+	/**
+	 * @dataProvider objectStorageProvider
+	 * @param bool $objectStorageUsed
+	 * @return void
+	 */
+	public function testCommandInputForHomePath($objectStorageUsed) {
+		if ($objectStorageUsed) {
+			$this->overwriteConfigWithObjectStorage();
+			$this->overwriteAppManagerWithObjectStorage();
+		}
+
 		$homePath = '/path/to/homes';
 		$uid = 'user1';
 
@@ -92,6 +94,12 @@ class HomeListUsersTest extends TestCase {
 		$this->commandTester->execute(['path' => $homePath]);
 		$output = $this->commandTester->getDisplay();
 		$this->assertStringContainsString($uid, $output);
+
+		if ($objectStorageUsed) {
+			$this->assertStringContainsString('We detected that the instance is running on a primary object storage, users might not be accurate', $output);
+			$this->restoreService('AllConfig');
+			$this->restoreService('AppManager');
+		}
 	}
 
 	public function testCommandInputAll() {
@@ -106,7 +114,7 @@ class HomeListUsersTest extends TestCase {
 
 		$this->commandTester->execute(['--all' => true]);
 		$output = $this->commandTester->getDisplay();
-		$this->assertSame("  - $path:\n    - $uid\n", $output);
+		$this->assertStringContainsString("  - $path:\n    - $uid\n", $output);
 	}
 
 	public function testCommandInputBoth() {
@@ -121,11 +129,21 @@ class HomeListUsersTest extends TestCase {
 		$this->assertStringContainsString('Not enough arguments (missing: "path").', $output);
 	}
 
-	public function testCommandOnPrimaryObjectStorage() {
-		$this->config->method('getSystemValue')->willReturn(['objectstorage']);
-		$this->appManager->method('isEnabledForUser')->willReturn(true);
-		$this->commandTester->execute(['--all' => true]);
-		$output = $this->commandTester->getDisplay();
-		$this->assertStringContainsString('This command is not supported on a primary object storage', $output);
+	private function overwriteConfigWithObjectStorage() {
+		$config = $this->createMock('\OCP\IConfig');
+		$config->expects($this->any())
+			->method('getSystemValue')
+			->willReturn(['objectstore' => true]);
+
+		$this->overwriteService('AllConfig', $config);
+	}
+
+	private function overwriteAppManagerWithObjectStorage() {
+		$config = $this->createMock('\OCP\App\IAppManager');
+		$config->expects($this->any())
+			->method('isEnabledForUser')
+			->willReturn(true);
+
+		$this->overwriteService('AppManager', $config);
 	}
 }

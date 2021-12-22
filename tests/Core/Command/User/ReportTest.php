@@ -24,15 +24,12 @@ namespace Tests\Core\Command\User;
 
 use OC\Core\Command\User\Report;
 use OC\Files\View;
-use OCP\IConfig;
-use OCP\App\IAppManager;
 use OC\Helper\UserTypeHelper;
 use OCP\IUserManager;
 use OCP\User\Constants;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Tester\CommandTester;
 use Test\TestCase;
-use PHPUnit\Framework\MockObject\MockObject;
 
 /**
  * Class ReportTest
@@ -46,12 +43,6 @@ class ReportTest extends TestCase {
 	/** @var IUserManager */
 	private $userManager;
 
-	/** @var IConfig | MockObject */
-	private $config;
-
-	/** @var IAppManager | MockObject */
-	private $appManager;
-
 	protected function setUp(): void {
 		parent::setUp();
 		$userTypeHelper = new UserTypeHelper();
@@ -59,13 +50,7 @@ class ReportTest extends TestCase {
 		$userManager = \OC::$server->getUserManager();
 		$this->userManager = $userManager;
 
-		$config = $this->createMock(IConfig::class);
-		$this->config = $config;
-
-		$appManager = $this->createMock(IAppManager::class);
-		$this->appManager = $appManager;
-
-		$command = new Report($userManager, $userTypeHelper, $this->config, $this->appManager);
+		$command = new Report($userManager, $userTypeHelper);
 		$command->setApplication(new Application());
 		$this->commandTester = new CommandTester($command);
 
@@ -85,24 +70,23 @@ class ReportTest extends TestCase {
 		$this->loginAsUser('admin');
 	}
 
-	public function objectStorageDataProvider(): array {
+	public function objectStorageProvider() {
 		return [
-			[null, false],
-			[null, true],
-			[['objectstore' => []], false],
-			[['objectstore' => []], true]
+			[true],
+			[false],
 		];
 	}
 
 	/**
-	 * @param array|null $objectStorage
-	 * @param bool $objectStorageAppEnabled
-	 * @dataProvider objectStorageDataProvider
+	 * @param bool $objectStorageUsed
+	 * @dataProvider objectStorageProvider
 	 * @return void
 	 */
-	public function testCommandInput($objectStorage, $objectStorageAppEnabled) {
-		$this->config->method('getSystemValue')->willReturn($objectStorage);
-		$this->appManager->method('isEnabledForUser')->willReturn($objectStorageAppEnabled);
+	public function testCommandInput($objectStorageUsed) {
+		if ($objectStorageUsed) {
+			$this->overwriteConfigWithObjectStorage();
+			$this->overwriteAppManagerWithObjectStorage();
+		}
 
 		$this->commandTester->execute([]);
 		$output = $this->commandTester->getDisplay();
@@ -111,7 +95,7 @@ class ReportTest extends TestCase {
 		$storage = $view->getMount('/')->getStorage();
 		$isLocalStorage = $storage->isLocal();
 
-		if ($isLocalStorage && (!$objectStorage || !$objectStorageAppEnabled)) {
+		if ($isLocalStorage) {
 			$expectedOutput = <<<EOS
 +------------------+---+
 | User Report      |   |
@@ -124,21 +108,6 @@ class ReportTest extends TestCase {
 |                  |   |
 | user directories | 1 |
 +------------------+---+
-
-EOS;
-		} elseif ($objectStorage && $objectStorageAppEnabled) {
-			$expectedOutput = <<<EOS
-+------------------+-------------------------------------------+
-| User Report      |                                           |
-+------------------+-------------------------------------------+
-| OC\User\Database | 1                                         |
-|                  |                                           |
-| guest users      | 0                                         |
-|                  |                                           |
-| total users      | 1                                         |
-|                  |                                           |
-| user directories | not supported with primary object storage |
-+------------------+-------------------------------------------+
 
 EOS;
 		} else {
@@ -158,6 +127,30 @@ EOS;
 EOS;
 		}
 
-		$this->assertEquals($expectedOutput, $output);
+		$this->assertStringContainsString($expectedOutput, $output);
+
+		if ($objectStorageUsed) {
+			$this->assertStringContainsString('We detected that the instance is running on a primary object storage, user directories count might not be accurate', $output);
+			$this->restoreService('AllConfig');
+			$this->restoreService('AppManager');
+		}
+	}
+
+	private function overwriteConfigWithObjectStorage() {
+		$config = $this->createMock('\OCP\IConfig');
+		$config->expects($this->any())
+			->method('getSystemValue')
+			->willReturn(['objectstore' => true]);
+
+		$this->overwriteService('AllConfig', $config);
+	}
+
+	private function overwriteAppManagerWithObjectStorage() {
+		$config = $this->createMock('\OCP\App\IAppManager');
+		$config->expects($this->any())
+			->method('isEnabledForUser')
+			->willReturn(true);
+
+		$this->overwriteService('AppManager', $config);
 	}
 }
