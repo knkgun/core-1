@@ -22,6 +22,8 @@
 namespace Tests\Core\Command\User;
 
 use OC\Core\Command\User\HomeListDirs;
+use OCP\App\IAppManager;
+use OCP\IConfig;
 use OCP\IUser;
 use OCP\IUserManager;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -37,11 +39,20 @@ class HomeListDirsTest extends TestCase {
 	/** @var IUserManager | \PHPUnit\Framework\MockObject\MockObject */
 	private $userManager;
 
+	/** @var IConfig | \PHPUnit\Framework\MockObject\MockObject */
+	protected $config;
+
+	/** @var IAppManager | \PHPUnit\Framework\MockObject\MockObject */
+	protected $appManager;
+
 	protected function setUp(): void {
 		parent::setUp();
 
 		$this->userManager = $this->createMock(IUserManager::class);
-		$command = new HomeListDirs($this->userManager);
+		$this->config = $this->createMock(IConfig::class);
+		$this->appManager = $this->createMock(IAppManager::class);
+
+		$command = new HomeListDirs($this->userManager, $this->config, $this->appManager);
 		$this->commandTester = new CommandTester($command);
 	}
 
@@ -56,5 +67,13 @@ class HomeListDirsTest extends TestCase {
 		$this->commandTester->execute([]);
 		$output = $this->commandTester->getDisplay();
 		$this->assertStringContainsString($homePath, $output);
+	}
+
+	public function testCommandOnPrimaryObjectStorage() {
+		$this->config->method('getSystemValue')->willReturn(['objectstorage']);
+		$this->appManager->method('isEnabledForUser')->willReturn(true);
+		$this->commandTester->execute([]);
+		$output = $this->commandTester->getDisplay();
+		$this->assertStringContainsString('This command is not supported on a primary object storage', $output);
 	}
 }

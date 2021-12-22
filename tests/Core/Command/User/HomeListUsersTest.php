@@ -23,8 +23,11 @@ namespace Tests\Core\Command\User;
 
 use Doctrine\DBAL\ForwardCompatibility\DriverStatement;
 use OC\Core\Command\User\HomeListUsers;
-use OC\User\AccountMapper;
+use OC\DB\Connection;
+use OCP\App\IAppManager;
+use OCP\IConfig;
 use OCP\IDBConnection;
+use OCP\IUserManager;
 use Symfony\Component\Console\Tester\CommandTester;
 use Test\TestCase;
 
@@ -40,21 +43,35 @@ class HomeListUsersTest extends TestCase {
 	/** @var IDBConnection | \PHPUnit\Framework\MockObject\MockObject */
 	private $connection;
 
-	/** @var \OCP\IUserManager | \PHPUnit\Framework\MockObject\MockObject */
+	/** @var IUserManager | \PHPUnit\Framework\MockObject\MockObject */
 	protected $userManager;
+
+	/** @var IConfig | \PHPUnit\Framework\MockObject\MockObject */
+	protected $config;
+
+	/** @var IAppManager | \PHPUnit\Framework\MockObject\MockObject */
+	protected $appManager;
 
 	protected function setUp(): void {
 		parent::setUp();
 
-		$this->connection = $this->getMockBuilder('\OC\DB\Connection')
+		$this->connection = $this->getMockBuilder(Connection::class)
 			->disableOriginalConstructor()
 			->getMock();
-		$this->userManager = $this->getMockBuilder('\OC\User\Manager')
+		$this->userManager = $this->getMockBuilder(IUserManager::class)
+			->disableOriginalConstructor()
+			->getMock();
+		$this->config = $this->getMockBuilder(IConfig::class)
+			->disableOriginalConstructor()
+			->getMock();
+		$this->appManager = $this->getMockBuilder(IAppManager::class)
 			->disableOriginalConstructor()
 			->getMock();
 		$command = new HomeListUsers(
 			$this->connection,
-			$this->userManager
+			$this->userManager,
+			$this->config,
+			$this->appManager
 		);
 		$this->commandTester = new CommandTester($command);
 	}
@@ -102,5 +119,13 @@ class HomeListUsersTest extends TestCase {
 		$this->commandTester->execute([]);
 		$output = $this->commandTester->getDisplay();
 		$this->assertStringContainsString('Not enough arguments (missing: "path").', $output);
+	}
+
+	public function testCommandOnPrimaryObjectStorage() {
+		$this->config->method('getSystemValue')->willReturn(['objectstorage']);
+		$this->appManager->method('isEnabledForUser')->willReturn(true);
+		$this->commandTester->execute(['--all' => true]);
+		$output = $this->commandTester->getDisplay();
+		$this->assertStringContainsString('This command is not supported on a primary object storage', $output);
 	}
 }

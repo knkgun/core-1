@@ -165,8 +165,8 @@ if (\OC::$server->getConfig()->getSystemValue('installed', false)) {
 	$application->add(new OC\Core\Command\User\Inactive(\OC::$server->getUserManager()));
 	$application->add(new OC\Core\Command\User\LastSeen(\OC::$server->getUserManager()));
 	$application->add(new OC\Core\Command\User\ListUsers(\OC::$server->getUserManager()));
-	$application->add(new OC\Core\Command\User\HomeListDirs(\OC::$server->getUserManager()));
-	$application->add(new OC\Core\Command\User\HomeListUsers(\OC::$server->getDatabaseConnection(), \OC::$server->getUserManager()));
+	$application->add(new OC\Core\Command\User\HomeListDirs(\OC::$server->getUserManager(), \OC::$server->getConfig(), \OC::$server->getAppManager()));
+	$application->add(new OC\Core\Command\User\HomeListUsers(\OC::$server->getDatabaseConnection(), \OC::$server->getUserManager(), \OC::$server->getConfig(), \OC::$server->getAppManager()));
 	$application->add(new OC\Core\Command\User\ListUserGroups(\OC::$server->getUserManager(), \OC::$server->getGroupManager()));
 	$application->add(new OC\Core\Command\User\Report(\OC::$server->getUserManager(), new UserTypeHelper(), \OC::$server->getConfig(), \OC::$server->getAppManager()));
 	$application->add(new OC\Core\Command\User\ResetPassword(
