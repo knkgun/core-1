@@ -58,6 +58,10 @@ class Report extends Command {
 	}
 
 	protected function execute(InputInterface $input, OutputInterface $output) {
+		if (Filesystem::isPrimaryObjectStorageEnabled() === true) {
+			$output->writeln('<info>We detected that the instance is running on a primary object storage, user directories count might not be accurate</info>');
+		}
+
 		$table = new Table($output);
 		$table->setHeaders(['User Report', '']);
 		$userCountArray = $this->countUsers();
@@ -85,14 +89,8 @@ class Report extends Command {
 			$rows[] = ['No backend enabled that supports user counting', ''];
 		}
 
-		if (Filesystem::isPrimaryObjectStorageEnabled() === true) {
-			$userDirectoryCount = "<error>not supported with primary object storage</error>";
-		} else {
-			$userDirectoryCount = $this->countUserDirectories();
-		}
-
 		$rows[] = [' '];
-		$rows[] = ['user directories', $userDirectoryCount];
+		$rows[] = ['user directories', $this->countUserDirectories()];
 
 		$table->setRows($rows);
 		$table->render($output);

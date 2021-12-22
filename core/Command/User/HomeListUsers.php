@@ -70,8 +70,7 @@ class HomeListUsers extends Base {
 
 	protected function execute(InputInterface $input, OutputInterface $output) {
 		if (Filesystem::isPrimaryObjectStorageEnabled() === true) {
-			$output->writeln('<error>This command is not supported on a primary object storage</error>');
-			return 1;
+			$output->writeln('<info>We detected that the instance is running on a primary object storage, users might not be accurate</info>');
 		}
 
 		$path = $input->getArgument('path');
