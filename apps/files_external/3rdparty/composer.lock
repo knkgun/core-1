@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "5fd036172304f02f7c718e008f652ff9",
+    "content-hash": "5bb45ec37c83901f083fd8a39dffb7f0",
     "packages": [
         {
             "name": "firebase/php-jwt",
@@ -514,16 +514,16 @@
         },
         {
             "name": "icewind/smb",
-            "version": "v3.5.1",
+            "version": "v3.5.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/icewind1991/SMB.git",
-                "reference": "c1ce4fbb2ff1786846d9d0b3850b395ca94cf563"
+                "reference": "76995aa11c14e39bccd0f2370ed63b2f8f623a6d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/icewind1991/SMB/zipball/c1ce4fbb2ff1786846d9d0b3850b395ca94cf563",
-                "reference": "c1ce4fbb2ff1786846d9d0b3850b395ca94cf563",
+                "url": "https://api.github.com/repos/icewind1991/SMB/zipball/76995aa11c14e39bccd0f2370ed63b2f8f623a6d",
+                "reference": "76995aa11c14e39bccd0f2370ed63b2f8f623a6d",
                 "shasum": ""
             },
             "require": {
@@ -555,9 +555,9 @@
             "description": "php wrapper for smbclient and libsmbclient-php",
             "support": {
                 "issues": "https://github.com/icewind1991/SMB/issues",
-                "source": "https://github.com/icewind1991/SMB/tree/v3.5.1"
+                "source": "https://github.com/icewind1991/SMB/tree/v3.5.4"
             },
-            "time": "2021-11-04T14:28:18+00:00"
+            "time": "2022-05-30T15:18:19+00:00"
         },
         {
             "name": "icewind/streams",
@@ -1191,5 +1191,5 @@
     "platform-overrides": {
         "php": "7.2"
     },
-    "plugin-api-version": "2.1.0"
+    "plugin-api-version": "2.3.0"
 }
